@@ -30,13 +30,13 @@ def predictionService():
   df = normalize(df) #optional normalization
   array = df.values
   X = array[:,0:numOfColumns-1] # all features
-  Y = array[:,numOfColumns-1:] # output
+  Y = array[:,numOfColumns-1] # output
   validation_size = 0.01
   
   X_train = X[0:int((1-validation_size)*numOfRows),:]
   X_validation = X[int((1-validation_size)*numOfRows):,:]
-  Y_train = Y[0:int((1-validation_size)*numOfRows)].ravel()
-  Y_validation = Y[int((1-validation_size)*numOfRows):].ravel()
+  Y_train = Y[0:int((1-validation_size)*numOfRows)]
+  Y_validation = Y[int((1-validation_size)*numOfRows):]
   assert numOfRows == len(X_train) + len(X_validation)
   print("knn begin")
   
