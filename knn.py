@@ -21,6 +21,7 @@ def predictionService():
   df = df.drop(['year'], axis=1) # almost a constant
   df = df.drop(['minute'], axis=1) # We definitely do not need second and micro second level granularity and probably don't need minute as well
   numOfColumns = len(df.columns)
+  numOfRows = len(df)
 
   # all values must be integers for modelling
   le = preprocessing.LabelEncoder()
@@ -29,10 +30,14 @@ def predictionService():
   df = normalize(df) #optional normalization
   array = df.values
   X = array[:,0:numOfColumns-1] # all features
-  Y = array[:,numOfColumns-1] # output
-  validation_size = 0.2
-  seed = 0
-  X_train, X_validation, Y_train, Y_validation = model_selection.train_test_split(X, Y, test_size=validation_size, random_state=seed)
+  Y = array[:,numOfColumns-1:] # output
+  validation_size = 0.01
+  
+  X_train = X[0:int((1-validation_size)*numOfRows),:]
+  X_validation = X[int((1-validation_size)*numOfRows):,:]
+  Y_train = Y[0:int((1-validation_size)*numOfRows)].ravel()
+  Y_validation = Y[int((1-validation_size)*numOfRows):].ravel()
+  assert numOfRows == len(X_train) + len(X_validation)
   print("knn begin")
   
   if(len(sys.argv) < 2):
@@ -42,7 +47,7 @@ def predictionService():
   if(sys.argv[1] == "t"):  
     train_knn(X_train,Y_train, X_validation, Y_validation)
   elif(sys.argv[1] == "p"):
-    predict_knn(X_train,Y_train, X_validation, Y_validation)
+    predict_knn(X_validation, Y_validation)
   else:
     train_predict_knn(X_train,Y_train, X_validation, Y_validation)
 
@@ -55,7 +60,7 @@ def train_knn(X_train,Y_train, X_validation, Y_validation):
   pickle.dump(knnModel, open("knn.model", 'wb'))
   print("Training   time for %d samples : %d seconds (Rate %d samples/second)" % (Y_train.size, trainTime, Y_train.size/trainTime))
   
-def predict_knn(X_train,Y_train, X_validation, Y_validation):
+def predict_knn(X_validation, Y_validation):
   knnModel = pickle.load(open("knn.model", 'rb'))
   startTime = time.time()
   predictions = knnModel.predict(X_validation)
