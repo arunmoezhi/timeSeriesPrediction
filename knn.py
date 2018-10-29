@@ -14,7 +14,8 @@ def main():
 
 def predictionService():
   # Load dataset
-  df = pandas.read_csv("dataset/test.csv")
+  fileName = "dataset/" + sys.argv[1] + ".csv"
+  df = pandas.read_csv(fileName)
   print("# of unique workbooks:", df["workbook"].nunique())
   print("Random prediction Accuracy : %.4f %%" % (100/(df["workbook"].nunique())))
   print("rows x cols {}\n".format(df.shape))
@@ -40,13 +41,13 @@ def predictionService():
   assert numOfRows == len(X_train) + len(X_validation)
   print("knn begin")
 
-  if(len(sys.argv) < 2):
+  if(len(sys.argv) < 3):
     train_predict_knn(X_train,Y_train, X_validation, Y_validation)
     return
 
-  if(sys.argv[1] == "t"):
+  if(sys.argv[2] == "t"):
     train_knn(X_train,Y_train, X_validation, Y_validation)
-  elif(sys.argv[1] == "p"):
+  elif(sys.argv[2] == "p"):
     predict_knn(X_validation, Y_validation)
   else:
     train_predict_knn(X_train,Y_train, X_validation, Y_validation)
