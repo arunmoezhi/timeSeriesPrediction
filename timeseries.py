@@ -23,7 +23,6 @@ def train():
   df = loadData()
   df = encodeSite(df)
   [df, X_train, Y_train] = split(df)
-
   startTime = time.time()
   knnModel = KNeighborsClassifier(n_neighbors=6, p=2, weights='distance', n_jobs=-1, algorithm='kd_tree',leaf_size=30)
   knnModel.fit(X_train, Y_train)
@@ -43,7 +42,6 @@ def predict():
   startTime = time.time()
   predictions = knnModel.predict(X_validation)
   predictionTime = time.time() - startTime
-
   print("Random prediction Accuracy             : %.4f %%" % (100.0/(df["workbook"].nunique())))
   print("KNN prediction Accuracy                : %.2f %%" % (100*accuracy_score(Y_validation, predictions)))
   print("Prediction time for %10d samples : %d seconds (Rate %d samples/second)\n" % (Y_validation.size, predictionTime, Y_validation.size/predictionTime))
@@ -68,15 +66,18 @@ def loadData():
 
 def encodeSite(df):
   # all values must be integers for modelling
+  df.dropna(inplace=True)
   dfToSave = df["site"].copy().to_frame()
   le = preprocessing.LabelEncoder()
   df["site"] = le.fit_transform(df["site"])
+  # use a large scaling factor so that even if the times are identical, two workbooks from different sites are far apart in the k-dimensional space tree
+  df["site"] = 30.42*23.0*30.42*23.0*df["site"]
   dfToSave["encodedsite"] = df["site"].copy()
   dfToSave.drop_duplicates(inplace=True)
   dfToSave.reset_index(drop=True, inplace=True)
   dfToSave.to_pickle("siteEncodings")
   return df
-  
+
 def getSiteEncodings(df):
   siteEncodings = pandas.read_pickle("siteEncodings")
   siteEncodings = siteEncodings.set_index("site")["encodedsite"].to_dict()
@@ -84,22 +85,21 @@ def getSiteEncodings(df):
   df.dropna(inplace=True)
   df.reset_index(drop=True, inplace=True)
   return df
-  
+
 def split(df):
-  df = normalize(df) #optional normalization
+  df = scale(df) #weighted scaling
   numOfColumns = len(df.columns)
   array = df.values
   X = array[:,0:numOfColumns-1] # all features
   Y = array[:,numOfColumns-1] # output
   return [df, X, Y]
 
-def normalize(df):
-  dfOrig = df;
-  df = df.drop(['workbook'], axis=1)
-  min_max_scaler = preprocessing.MinMaxScaler()
-  arr_scaled = min_max_scaler.fit_transform(df)
-  df = pandas.DataFrame(arr_scaled, columns=list(df));
-  df["workbook"] = dfOrig["workbook"]
+def scale(df):
+  # scale "hour" feature to vary between 0 and 1
+  df["hour"] = df["hour"]/23.0
+  # same hour from day i and day (i+1) should be apart by 23 hours in the kd tree
+  df["day"] = 23.0*df["day"]/31.0
+  df["month"] = 30.42*23.0*df["month"]/12.0
   return df
 
 if __name__ == '__main__':

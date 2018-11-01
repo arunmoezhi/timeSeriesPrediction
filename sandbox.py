@@ -50,6 +50,15 @@ def labelEncoder():
 	print(le.inverse_transform(y_true))
 	y_pred = [1, 3, 0, 1, 2]
 	print(classification_report(y_true, y_pred))
+  
+def featureHasher(df):
+  # creates less number of features compared to one-hot encoding for a categorical nominal feature
+  fh = FeatureHasher(n_features=30, input_type='string')
+  hashed_features = fh.fit_transform(df["site"])
+  hashed_features = hashed_features.toarray()
+  df1 = pandas.concat([df.iloc[:,0:3],pandas.DataFrame(hashed_features)],axis=1)
+  df1["workbook"] = df["workbook"]
+  return df
 
 if __name__ == '__main__':
 	main()
