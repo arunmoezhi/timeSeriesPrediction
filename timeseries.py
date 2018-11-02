@@ -24,16 +24,15 @@ def train():
   df = encodeSite(df)
   [df, X_train, Y_train] = split(df)
   startTime = time.time()
-  knnModel = KNeighborsClassifier(n_neighbors=3, p=2, weights='distance', n_jobs=-1, algorithm='kd_tree',leaf_size=30)
+  knnModel = KNeighborsClassifier(n_neighbors=6, p=2, weights='distance', n_jobs=-1, algorithm='kd_tree',leaf_size=30)
   knnModel.fit(X_train, Y_train)
   trainTime = time.time() - startTime
 
-  print("Training   time for %10d samples : %d seconds (Rate %d samples/second)" % (Y_train.size, trainTime, Y_train.size/trainTime))
+  print("Training   time for %10d samples       : %d seconds (Rate %d samples/second)" % (Y_train.size, trainTime, Y_train.size/trainTime))
   print("Saving model to knn.model file\n")
   pickle.dump(knnModel, open("knn.model", 'wb'))
   uniqueWorkbooksSorted = sorted(df["workbook"].unique())
   pickle.dump(uniqueWorkbooksSorted, open("uniqueWorkbooksSorted", 'wb'))
-  #print(uniqueWorkbooksSorted)
 
 def predict():
   print("Loading knn.model file")
@@ -45,39 +44,34 @@ def predict():
   startTime = time.time()
   predictions = knnModel.predict(X_validation)
   predictionTime = time.time() - startTime
-  print("Random prediction Accuracy             : %.4f %%" % (100.0/(df["workbook"].nunique())))
-  print("KNN prediction Accuracy                : %.2f %%" % (100*accuracy_score(Y_validation, predictions)))
-  print("Prediction time for %10d samples : %d seconds (Rate %d samples/second)\n" % (Y_validation.size, predictionTime, Y_validation.size/predictionTime))
-  correctPredictions=0
-  for i in range(0,Y_validation.size):
-    if(predictions[i] == Y_validation[i]):
-      correctPredictions = correctPredictions + 1
-  accuracy = correctPredictions*100.0/Y_validation.size     
-  print(accuracy)
-  #print("actual values   %s" % Y_validation)
-  #print("predicted values%s" % predictions)
-  #print(knnModel.kneighbors(X_validation))
+  print("Random prediction Accuracy                   : %.4f %%" % (100.0/(df["workbook"].nunique())))
+  print("KNN prediction Accuracy                      : %.2f %%" % (100*accuracy_score(Y_validation, predictions)))
+  print("Prediction time for %10d samples       : %d seconds (Rate %d samples/second)\n" %
+  (Y_validation.size, predictionTime, Y_validation.size/predictionTime))
+
+  # get the probabilities of each predicted value
   probabilities = knnModel.predict_proba(X_validation)
-  # choose top K probable values
-  K = 2
-  #print(probabilities)
-  topKValues = np.empty((Y_validation.size,K))
+  # choose top K probable values and store their indices
+  K = 5
+  topKValuesIndices = np.empty((Y_validation.size,K))
   for i in range(0, Y_validation.size):
-    topKValues[i] = probabilities[i].argsort()[-K:]
-  #print(topKValues)  
+    topKValuesIndices[i] = probabilities[i].argsort()[-K:]
+
+  # read all possible prediction values from file which was created during training phase
   uniqueWorkbooksSorted = pandas.read_pickle("uniqueWorkbooksSorted")
-  #print(uniqueWorkbooksSorted)
+
+  # use the prediction values domain to map indices to actual prediction values
   topKPredictions = np.empty((Y_validation.size,K),dtype='object')
   for i in range(0, Y_validation.size):
     for j in range(0, K):
-      topKPredictions[i][j] = uniqueWorkbooksSorted[int(topKValues[i][j])]
-  #print(topKPredictions)
+      topKPredictions[i][j] = uniqueWorkbooksSorted[int(topKValuesIndices[i][j])]
+
   correctPredictions=0
   for i in range(0, Y_validation.size):
     if(Y_validation[i] in topKPredictions[i]):
       correctPredictions = correctPredictions + 1
-  accuracy = correctPredictions*100.0/Y_validation.size     
-  print(accuracy)
+  accuracy = correctPredictions*100.0/Y_validation.size
+  print("KNN prediction Accuracy with %d predictions   : %.2f %%" % (K, accuracy))
 
 def loadData():
   input = "dataset/" + sys.argv[1] + ".csv"
@@ -92,9 +86,9 @@ def loadData():
     print(df.columns[i], end='\t')
   print("\n\nTarget to predict: \n%s\n" % df.columns[numOfColumns-1])
 
-  print("# of records                           : %d" % numOfRows)
-  print("# of unique sites                      : %d" % df["site"].nunique())
-  print("# of unique workbooks                  : %d (Avg %.1f workbooks/site)" % (df["workbook"].nunique(), df["workbook"].nunique() * 1.0/df["site"].nunique()))
+  print("# of records                                 : %d" % numOfRows)
+  print("# of unique sites                            : %d" % df["site"].nunique())
+  print("# of unique workbooks                        : %d (Avg %.1f workbooks/site)" % (df["workbook"].nunique(), df["workbook"].nunique() * 1.0/df["site"].nunique()))
   return df
 
 def encodeSite(df):
