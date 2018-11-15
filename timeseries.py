@@ -29,19 +29,21 @@ def train():
   trainTime = time.time() - startTime
 
   print("Training   time for %10d samples       : %d seconds (Rate %d samples/second)" % (Y_train.size, trainTime, Y_train.size/trainTime))
-  print("Saving model to knn.model file\n")
-  pickle.dump(knnModel, open("knn.model", 'wb'))
+  modelFile = "knn.model-" + sys.argv[1]
+  print("Saving model to " +  modelFile + " file\n")
+  pickle.dump(knnModel, open(modelFile, 'wb'))
   uniqueWorkbooksSorted = sorted(df["workbook"].unique())
   pickle.dump(uniqueWorkbooksSorted, open("uniqueWorkbooksSorted", 'wb'))
 
 def predict():
-  print("Loading knn.model file")
   df = loadData()
   avgUniqueWorkbooksPerSite = df["workbook"].nunique() * 1.0/df["site"].nunique()
   randomAccuracy = 100.0/avgUniqueWorkbooksPerSite
   df = getSiteEncodings(df)
   [df, X_validation, Y_validation] = split(df)
-  knnModel = pickle.load(open("knn.model", 'rb'))
+  modelFile = "knn.model-" + sys.argv[4]
+  print("Using " + modelFile + " file")
+  knnModel = pickle.load(open(modelFile, 'rb'))
 
   startTime = time.time()
   predictions = knnModel.predict(X_validation)
@@ -80,11 +82,11 @@ def loadData():
   df = pandas.read_csv(input)
   df = df.drop(['year'], axis=1) # almost a constant
   df = df.drop(['minute'], axis=1) # We definitely do not need second and micro second level granularity and probably don't need minute as well
-  weekStartDate = df['day'].min()
-  offset = int(sys.argv[3])-1
-  actualDate = weekStartDate+offset
-  print(actualDate)
-  df = df[df['day']==actualDate]
+  if(sys.argv[2] == "predict"):
+    weekStartDate = df['day'].min()
+    offset = int(sys.argv[3])-1
+    actualDate = weekStartDate+offset
+    df = df[df['day']==actualDate]
   numOfColumns = len(df.columns)
   numOfRows = len(df)
 
