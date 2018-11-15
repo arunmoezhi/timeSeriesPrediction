@@ -37,6 +37,8 @@ def train():
 def predict():
   print("Loading knn.model file")
   df = loadData()
+  avgUniqueWorkbooksPerSite = df["workbook"].nunique() * 1.0/df["site"].nunique()
+  randomAccuracy = 100.0/avgUniqueWorkbooksPerSite
   df = getSiteEncodings(df)
   [df, X_validation, Y_validation] = split(df)
   knnModel = pickle.load(open("knn.model", 'rb'))
@@ -44,8 +46,8 @@ def predict():
   startTime = time.time()
   predictions = knnModel.predict(X_validation)
   predictionTime = time.time() - startTime
-  print("Random prediction Accuracy                   : %.4f %%" % (100.0/(df["workbook"].nunique())))
-  print("KNN prediction Accuracy                      : %.2f %%" % (100*accuracy_score(Y_validation, predictions)))
+  print("Random prediction Accuracy                   : %.1f %%" % randomAccuracy)
+  print("KNN prediction Accuracy                      : %.1f %%" % (100*accuracy_score(Y_validation, predictions)))
   print("Prediction time for %10d samples       : %d seconds (Rate %d samples/second)\n" %
   (Y_validation.size, predictionTime, Y_validation.size/predictionTime))
 
@@ -71,13 +73,18 @@ def predict():
     if(Y_validation[i] in topKPredictions[i]):
       correctPredictions = correctPredictions + 1
   accuracy = correctPredictions*100.0/Y_validation.size
-  print("KNN prediction Accuracy with %d predictions   : %.2f %%" % (K, accuracy))
+  print("KNN prediction Accuracy with %d predictions   : %.1f %%" % (K, accuracy))
 
 def loadData():
   input = "dataset/" + sys.argv[1] + ".csv"
   df = pandas.read_csv(input)
   df = df.drop(['year'], axis=1) # almost a constant
   df = df.drop(['minute'], axis=1) # We definitely do not need second and micro second level granularity and probably don't need minute as well
+  weekStartDate = df['day'].min()
+  offset = int(sys.argv[3])-1
+  actualDate = weekStartDate+offset
+  print(actualDate)
+  df = df[df['day']==actualDate]
   numOfColumns = len(df.columns)
   numOfRows = len(df)
 
