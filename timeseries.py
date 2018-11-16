@@ -33,7 +33,8 @@ def train():
   print("Saving model to " +  modelFile + " file\n")
   pickle.dump(knnModel, open(modelFile, 'wb'))
   uniqueWorkbooksSorted = sorted(df["workbook"].unique())
-  pickle.dump(uniqueWorkbooksSorted, open("uniqueWorkbooksSorted", 'wb'))
+  uniqueWorkbooksSortedFile = "uniqueWorkbooksSorted-" + sys.argv[1]
+  pickle.dump(uniqueWorkbooksSorted, open(uniqueWorkbooksSortedFile, 'wb'))
 
 def predict():
   df = loadData()
@@ -62,7 +63,8 @@ def predict():
     topKValuesIndices[i] = probabilities[i].argsort()[-K:]
 
   # read all possible prediction values from file which was created during training phase
-  uniqueWorkbooksSorted = pandas.read_pickle("uniqueWorkbooksSorted")
+  uniqueWorkbooksSortedFile = "uniqueWorkbooksSorted-" + sys.argv[4]
+  uniqueWorkbooksSorted = pandas.read_pickle(uniqueWorkbooksSortedFile)
 
   # use the prediction values domain to map indices to actual prediction values
   topKPredictions = np.empty((Y_validation.size,K),dtype='object')
