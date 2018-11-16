@@ -111,11 +111,13 @@ def encodeSite(df):
   dfToSave["encodedsite"] = df["site"].copy()
   dfToSave.drop_duplicates(inplace=True)
   dfToSave.reset_index(drop=True, inplace=True)
-  dfToSave.to_pickle("siteEncodings")
+  siteEncodingsFile = "siteEncodings-" + sys.argv[1]
+  dfToSave.to_pickle(siteEncodingsFile)
   return df
 
 def getSiteEncodings(df):
-  siteEncodings = pandas.read_pickle("siteEncodings")
+  siteEncodingsFile = "siteEncodings-" + sys.argv[4]
+  siteEncodings = pandas.read_pickle(siteEncodingsFile)
   siteEncodings = siteEncodings.set_index("site")["encodedsite"].to_dict()
   df["site"] = df.apply(lambda df : siteEncodings.get(df["site"]), axis=1)
   df.dropna(inplace=True)
