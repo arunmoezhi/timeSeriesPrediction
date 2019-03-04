@@ -1,0 +1,2 @@
+# timeSeriesPrediction
+![algorithm](algorithm.png)
