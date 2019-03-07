@@ -54,11 +54,17 @@ def predict():
   print("Prediction time for %10d samples       : %d seconds (Rate %d samples/second)\n" %
   (Y_validation.size, predictionTime, Y_validation.size/predictionTime))
 
+  multipleWorkbooksPrediction(knnModel, X_validation, Y_validation, 5)
+  multipleWorkbooksPrediction(knnModel, X_validation, Y_validation, 10)
+
+def multipleWorkbooksPrediction(knnModel, X_validation, Y_validation, K):
   # get the probabilities of each predicted value
+  # this is an array of size (# of records to predict X # of unique workbooks in the training set
   probabilities = knnModel.predict_proba(X_validation)
   # choose top K probable values and store their indices
-  K = 5
+  # this is an array of size Y_validation.size X K
   topKValuesIndices = np.empty((Y_validation.size,K))
+  # sort (descending) every row based on the probability value and choose top K values
   for i in range(0, Y_validation.size):
     topKValuesIndices[i] = probabilities[i].argsort()[-K:]
 
@@ -84,7 +90,17 @@ def loadData():
   df = pandas.read_csv(input)
   df = df.drop(['year'], axis=1) # almost a constant
   df = df.drop(['minute'], axis=1) # We definitely do not need second and micro second level granularity and probably don't need minute as well
-  if(sys.argv[2] == "predict"):
+
+  trainOrPredict = sys.argv[2]
+  if(trainOrPredict == "train" and len(sys.argv) > 3):
+    print("site: %s" % sys.argv[3])
+    df = df[df['site']==sys.argv[3]]
+  if(trainOrPredict == "predict" and len(sys.argv) > 5):
+    print("site: %s" % sys.argv[5])
+    df = df[df['site']==sys.argv[5]]
+
+
+  if(trainOrPredict == "predict"):
     weekStartDate = df['day'].min()
     offset = int(sys.argv[3])-1
     actualDate = weekStartDate+offset
