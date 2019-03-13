@@ -18,6 +18,8 @@ def predictionService():
     train()
   elif(sys.argv[2] == "predict"):
     predict()
+  elif(sys.argv[2] == "probOfWbAtTime"):
+    probOfWbAtTime(float(sys.argv[3]),float(sys.argv[4]),float(sys.argv[5]),float(sys.argv[6]),float(sys.argv[7]),sys.argv[8],sys.argv[9])
 
 def train():
   df = loadData()
@@ -34,6 +36,33 @@ def train():
   uniqueWorkbooksSorted = sorted(df["workbook"].unique())
   uniqueWorkbooksSortedFile = "uniqueWorkbooksSorted-" + sys.argv[1] + "-" + sys.argv[3]
   pickle.dump(uniqueWorkbooksSorted, open(uniqueWorkbooksSortedFile, 'wb'))
+
+def probOfWbAtTime(year, month, day, hour, minute, site, workbook):
+  print("(year: %s), (month: %s), (day: %s), (hour: %s), (min: %s), (site: %s), (workbook: %s)" % (year, month, day, hour, min, site, workbook))
+  input = "dataset/" + sys.argv[1] + ".csv"
+  d = {'year': [year], 'month': [month], 'day': [day], 'hour': [hour], 'minute': [minute], 'site': [site], 'workbook': [workbook]}
+  df = pandas.DataFrame(data=d)
+  #df = pandas.read_csv(input)
+  df = df.drop(['year'], axis=1) # almost a constant
+  df = df.drop(['minute'], axis=1) # We definitely do not need second and micro second level granularity and probably don't need minute as well
+
+  df = df[df['site']==site]
+  df = df.drop(['site'], axis=1)
+
+  [df, X_validation, Y_validation] = split(df)
+  modelFile = "knn.model-" + sys.argv[1] + "-" + site
+  knnModel = pickle.load(open(modelFile, 'rb'))
+  probabilities = knnModel.predict_proba(X_validation)
+  #print(probabilities)
+  # read all possible prediction values from file which was created during training phase
+  uniqueWorkbooksSortedFile = "uniqueWorkbooksSorted-" + sys.argv[1] + "-" + site
+  uniqueWorkbooksSorted = pandas.read_pickle(uniqueWorkbooksSortedFile)
+  for i in range(0,len(uniqueWorkbooksSorted)):
+    if(uniqueWorkbooksSorted[i] == workbook):
+      print("Access Probability: %.2f" % probabilities[0][i])
+      return
+  print(0.0)
+
 
 def predict():
   df = loadData()
@@ -53,7 +82,6 @@ def predict():
 
   if(df["workbook"].nunique() > 4):
     multipleWorkbooksPrediction(knnModel, X_validation, Y_validation, 5)
-    multipleWorkbooksPrediction(knnModel, X_validation, Y_validation, 10)
 
 def multipleWorkbooksPrediction(knnModel, X_validation, Y_validation, K):
   # get the probabilities of each predicted value
@@ -96,9 +124,9 @@ def loadData():
   if(trainOrPredict == "predict" and len(sys.argv) > 5):
     print("site: %s" % sys.argv[5])
     df = df[df['site']==sys.argv[5]]
-  
+
   df = df.drop(['site'], axis=1)
-  
+
   if(trainOrPredict == "predict"):
     weekStartDate = df['day'].min()
     offset = int(sys.argv[3])-1
